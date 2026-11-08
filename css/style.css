@@ -21,3 +21,4 @@ th,td{padding:8px;border-bottom:1px solid var(--bd);text-align:right}th{color:va
 .alert{color:var(--bad);font-weight:bold}.ok{color:var(--ok)}.mut{color:var(--mut);font-size:12px}
 .row{display:flex;gap:8px;align-items:center;justify-content:space-between}
 .login{max-width:360px;margin:12vh auto}a.wa{color:var(--ok);text-decoration:none}
+.foot{text-align:center;color:var(--mut);font-size:12px;padding:18px 10px;direction:ltr}

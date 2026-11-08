@@ -27,6 +27,13 @@ async function ownerView() {
   ({ dash: dashTab, workers: workersTab, set: setTab })[S.tab]();
 }
 
+const DEFAULT_FOLLOW = 'أهلاً بحضرتك 🌟 معاك إدارة غسيل العربيات. حبينا نطمّن على خدمة غسيل عربيتك ({plate}) - {service}. إيه رأيك في الخدمة؟ وعندك أي ملاحظات أو اقتراحات؟ رأيك يهمنا جداً.';
+function followWa(x) {
+  let p = x.phone.replace(/\D/g, ''); if (p.startsWith('0')) p = '2' + p;
+  const msg = (S.settings.followMsg || DEFAULT_FOLLOW).replace('{plate}', x.plate).replace('{service}', x.service);
+  return `https://wa.me/${p}?text=${encodeURIComponent(msg)}`;
+}
+
 async function dashTab() {
   const workers = await DB.list('workers');
   const inR = x => x.date >= S.from && x.date <= S.to;
@@ -52,7 +59,7 @@ async function dashTab() {
   <p class="mut">المتوقع = لترات المياه المعبّاة ÷ ${lpw} لتر للغسلة. لو أكبر بكتير من المسجل، في غسيل مش متسجل.</p></div>
   <div class="card"><h2>سجل الغسلات</h2><div class="tw"><table><tr><th>#</th><th>تاريخ</th><th>عامل</th><th>عربية</th><th>خدمة</th><th>سعر</th><th>دفع</th><th></th></tr>
   ${washes.map(x => `<tr><td>${x.no}</td><td>${x.date}</td><td>${esc(x.workerName)}</td><td>${esc(x.plate)}</td><td>${esc(x.service)}</td><td>${x.price}</td>
-  <td>${x.pay === 'cash' ? 'كاش' : 'رقمي'}</td><td><button class="del" data-id="${x.id}">حذف</button></td></tr>`).join('') || '<tr><td colspan="8" class="mut">لا يوجد</td></tr>'}</table></div></div>`;
+  <td>${x.pay === 'cash' ? 'كاش' : 'رقمي'}</td><td>${x.phone ? `<a class="wa" target="_blank" href="${followWa(x)}">📲 متابعة العميل</a>` : '<span class="mut">لا يوجد رقم</span>'} <button class="del" data-id="${x.id}">حذف</button></td></tr>`).join('') || '<tr><td colspan="8" class="mut">لا يوجد</td></tr>'}</table></div></div>`;
   $('f').onchange = e => { S.from = e.target.value; dashTab(); };
   $('t').onchange = e => { S.to = e.target.value; dashTab(); };
   document.querySelectorAll('.del').forEach(b => b.onclick = async () => { if (confirm('حذف الغسلة؟')) { await DB.remove('washes', b.dataset.id); dashTab(); } });
@@ -80,10 +87,12 @@ function setTab() {
     <label>الخدمات والأسعار (سطر لكل خدمة: الاسم:السعر)</label>
     <textarea id="sv" rows="4">${s.services.map(x => x.name + ':' + x.price).join('\n')}</textarea>
     <label>لترات المياه المستهلكة في الغسلة الواحدة (تقريبي)</label><input id="l" type="number" value="${s.litersPerWash}">
+    <label>رسالة متابعة العميل على واتساب (استخدم {plate} للعربية و{service} للخدمة)</label>
+    <textarea id="fm" rows="4">${esc(s.followMsg || DEFAULT_FOLLOW)}</textarea>
     <label>الرقم السري للمالك</label><input id="op" value="${esc(s.ownerPin)}">
     <button class="full" id="sv2">حفظ</button></div>`;
   $('sv2').onclick = async () => {
-    S.settings = { ...s, litersPerWash: +$('l').value || 40, ownerPin: $('op').value || '1234',
+    S.settings = { ...s, litersPerWash: +$('l').value || 40, ownerPin: $('op').value || '1234', followMsg: $('fm').value.trim(),
       services: $('sv').value.split('\n').map(r => r.split(':')).filter(r => r[0] && +r[1]).map(r => ({ name: r[0].trim(), price: +r[1] })) };
     await DB.saveSettings(S.settings); alert('تم الحفظ');
   };
